@@ -1,0 +1,297 @@
+
+base_global_planner: global_planner/GlobalPlanner
+
+GlobalPlanner: {
+  allow_unknown: true, # 是否允许规划路径通过未知区域
+  use_dijkstra: true, # 置为true则使用dijkstra算法 置为false则使用A*算法
+
+  # 用于将代价地图中网格的代价值转换为加权无向图中节点的权重值 一个网格对应一个节点
+  # 加权无向图将用于计算势能图 势能图可用于搜索最优路径
+
+  # cost_unknown=255 未知区域代价值 表示尚未获得对应网格的占有信息
+  # cost_lethal=254 真实（致命）障碍物区域（确定会发生碰撞）代价值 对应actual(work)-space的障碍物 对应的从机器人到真实障碍物的距离为 0到0.5*cell_size_in_meters
+  # cost_inscribed=253 膨胀障碍物区域（确定会发生碰撞）代价值 对应configuration-space的障碍物 对应的从机器人到真实障碍物的距离为 0.5*cell_size_in_meters到inscribed_radius（机器人footprint的内切半径）
+  # cost_possibly_circumscribed=128 膨胀障碍物区域（可能会发生碰撞）代价值 对应的从机器人到真实障碍物的距离为 inscribed_radius（机器人footprint的内切半径）到circumscribed_radius（机器人footprint的外切半径）
+  # cost_lowest_nonfreespace=1 非空闲区域（确定不会发生碰撞）的最低代价值 对应的从机器人到真实障碍物的距离为 circumscribed_radius（机器人footprint的外切半径）到inflation_radius（真实障碍物的膨胀半径） 
+  # cost_freespace=0 空闲区域（确定不会发生碰撞）的代价值 对应的从机器人到真实障碍物的距离为 inflation_radius（真实障碍物的膨胀半径）到infinite_radiu（无限远的半径）
+
+  # 非确定会发生碰撞的区域的网格（代价地图中的代价值为0到cost_inscribed-1）对应节点的权重值的计算公式为 neutral_cost+cost_factor*网格在代价地图中的代价值 映射后范围为[neutral_cost, lethal_cost-1]
+  # 未知区域的网格（代价地图中的代价值为cost_unknown）对应节点的权重值为lethal_cost-1 
+  # 确定会发生碰撞的膨胀障碍区域的网格（代价地图中的代价值为cost_inscribed）对应节点的权重值为lethal_cost-1
+  # 确定会发生碰撞的真实障碍区域的网格（代价地图中的代价值为cost_lethal）对应节点的权重值为lethal_cost
+ 
+  # neutral_cost和cost_factor的设置应使得输入的代价地图的代价值的分布能使输出权重在neutral_cost到lethal_cost之间均匀变化
+  # 如果cost_factor较高 输出的权重值将过快地从neutral_cost到达lethal_cost从而被截断 因此将导致在障碍物附近的一定距离范围内 各个位置对应节点的权重值都是lethal_cost 如果是在狭窄通道中 将会出现所有位置所对应的节点权重值都是lethal_cost 这将导致路径规划器无法找出相对更优的路径（中心路径）
+  # 将cost_factor设置过高或过低都会降低路径质量 这些路径没有穿过每侧障碍物的中间 也没有相对光滑的曲率 极端的neutral_cost值也有类似的效果 
+  # 对于lethal_cost，如果设置的过低可能会无法产生任何路径 即使存在明显的可行路径
+  cost_factor: 3.0, # 计算加权无向图节点权重的代价地图的代价值尺度因子 该值将会影响节点权重值从障碍物区域过渡到空闲区域的衰减速度 数值越大 权重值从lethal_cost衰减到neutral_cost就越快
+  lethal_cost: 253, # 加权无向图节点的最高权重值
+  neutral_cost: 50, # 加权无向图节点的最低权重值
+
+  # orientation_mode是对规划路径的路径点进行朝向设置的方式 可分为以下几种方式
+  # None=0 除了目标点 其他路径点均不设置朝向 如果全局路径规划不提供朝向 则会由局部路径规划来提供朝向
+  # Forward=1 除了目标点 其他路径点的朝向被设置为x轴正方向是沿着路径的方向
+  # Interpolate=2 路径点的朝向是由起始点和目标点的朝向进行线性插值得到 当在狭窄通道中需要不改变起始朝向而直接后退出来时 该模式可以保证局部规划器规划出的路径不会导致朝两侧的碰撞
+  # ForwardThenInterpolate=3 在最后一段直线路径之前 都将路径点的朝向设置为x轴正方向沿着路径的方向 在最后一段直线路径上 通过对起始点和目标点的朝向进行线性插值来得到路径点的朝向
+  # Backward=4 除了目标点 其他路径点的朝向被设置为x轴负方向是沿着路径的方向
+  # Leftward=5 除了目标点 其他路径点的朝向被设置为y轴正方向是沿着路径的方向
+  # Rightward=6 除了目标点 其他路径点的朝向被设置为y轴负方向是沿着路径的方向
+  orientation_mode: 1,
+  orientation_window_size: 1, # 用于对路径点计算出的朝向进行平滑 是对路径点的位置进行差分时的差分窗口大小 该窗口越小 计算出的路径点的朝向越平滑
+  publish_potential: true # 是否发布计算出的势能图的topic 可用于rviz可视化
+}
+
+global_costmap:
+  map_type: costmap
+
+  # 用于查找TF tree进而计算机器人在地图中的位姿
+  global_frame: map # 代价地图对应的全局固定坐标系
+  robot_base_frame: base_footprint # 机器人对应的局部移动坐标系
+
+  transform_tolerance: 0.5 # tf listener监听tf的最大时间 单位为秒
+  update_frequency: 10.0 # 更新代价地图的频率
+  publish_frequency: 10.0 # 发布代价地图的频率
+
+  footprint: '[]' # 用于计算膨胀层的机器人几何形状
+  footprint_padding: 0.01
+  robot_radius: 0.105 # 用于计算膨胀层的机器人半径
+
+  width: 10 # 代价地图的宽度 单位为米
+  height: 10 # 代价地图的高度 单位为米
+  origin_x: 0.0 # 代价地图的图像坐标系原点在global_frame中的x值 单位为米
+  origin_y: 0.0 # 代价地图的图像坐标系原点在global_frame中的y值 单位为米
+  resolution: 0.05 # 代价地图的分辨率 单位为米/像素 该值应该小于传感器数据的分辨率 否则会出现很多传感器检测不到的未知状态点 该值太大则会导致狭窄区域两侧的障碍物区域合并 从而令该处的路径规划找不到可用路径
+
+  observation_sources: scan # 障碍物层所使用的传感器数据源（命名空间） 当使用多个传感器数据源时 通过空格分隔开 如"source_name1 source_name2"
+  scan: { # 配置observation_sources列出的传感器数据源
+    clearing: true, # 传感器数据是否用于空闲区域的代价值清除
+    data_type: LaserScan, # 数据源的数据类型 只支持sensor_msgs/LaserScan sensor_msgs/PointCloud sensor_msgs/PointCloud2
+    marking: true, # 传感器数据是否用于障碍物区域的代价值标记
+    sensor_frame: base_scan, # 数据源所在的坐标系
+    topic: scan, # 数据源对应的topic名
+    raytrace_range: 2.5, # 利用传感器数据对障碍物进行光线追踪的最大距离 光线追踪用于清空从传感器到障碍物之间的路径上的网格的代价值
+    obstacle_range: 2.0 # 利用传感器数据往代价地图中插入障碍物的最大距离 超出该距离的障碍物将不插入到代价地图中
+  }
+
+
+  # 用于合成代价地图的各个代价地图层
+  plugins:
+    - {name: static_layer, type: 'costmap_2d::StaticLayer'}
+    - {name: virtual_layer, type: 'virtual_layer::VirtualLayer'}
+    - {name: inflation_layer, type: 'costmap_2d::InflationLayer'}
+
+  static_layer: {
+    enabled: true
+  }
+
+  # 代价地图网格状态对应的代价值
+  # NO_INFORMATION=255 LETHAL_OBSTACLE=254 INSCRIBED_INFLATED_OBSTACLE=253 FREE_SPACE=0
+  # 膨胀层代价值计算公式
+  # 与障碍物距离为0的位置 代价值为LETHAL_OBSTACLE
+  # 与障碍物距离在0到inscribed_radius（机器人内切半径）之间的位置 代价值为INSCRIBED_INFLATED_OBSTACLE
+  # 与障碍物距离大于inscribed_radius（机器人内切半径）的位置 代价值为 (INSCRIBED_INFLATED_OBSTACLE-1)*exp(-1.0*cost_scaling_factor*(该位置到障碍物的欧氏距离-inscribed_radius))
+
+  inflation_layer: {
+    enabled: true, 
+    cost_scaling_factor: 15, # 代价值缩放系数 该系数越高 代价值在膨胀半径内衰减得越快
+    inflate_unknown: false, # 是否膨胀未知区域
+    inflation_radius: 1.5 # 障碍物的膨胀半径 用于控制零代价点距离障碍物的最小距离 单位为米
+  }
+
+  virtual_layer:
+    enabled: true  
+    map_frame: map # 代价地图对应的全局固定坐标系
+    base_frame: base_footprint # 机器人对应的局部移动坐标系
+    zone_topics: [/viable_zone] # 虚拟可行区域的topic
+    obstacle_topics: [/virtual_obstacle] # 虚拟障碍物的topic
+    one_zone: true # 是否只允许存在一个可行区域
+    clear_obstacles: true # 在设置新的虚拟障碍物时是否清除旧的虚拟障碍物
+
+
+base_local_planner: dwa_local_planner/DWAPlannerROS
+
+DWAPlannerROS: {
+
+  use_dwa: true,
+
+  # 最大线速度和角速度可以通过控制机器人前进和旋转来进行测量 当机器人到达恒定速度时 该速度即是最大速度
+  # 最大加速度可以通过测量机器人到达恒定速度所需要的时间与该恒定速度的数值来计算获得
+  # y方向的线速度和加速度只有全向移动的机器人才需配置
+
+  acc_limit_trans: 2.5, # 最大平移加速度 是x方向加速度和y方向加速度的平方和开根号 可以和sim_time一起计算出当前平移速度所允许的最大平移速度 该值太小会导致机器人无法前进
+  acc_lim_theta: 3.2, # 最大旋转加速度 该值太小会导致无法产生足够曲率的弧形路径
+
+  acc_lim_x: 2.5, # x方向最大加速度 
+  acc_lim_y: 0.0, # y方向最大加速度
+
+  min_trans_vel: 0.11, # 平移最小速度的绝对值 是旋转速度可以忽略时的最小线速度 不能设置为0 否则局部规划器在该情况下会认为规划的是平移运动 而实际上却是旋转运动
+  max_trans_vel: 0.22, # 平移最大速度的绝对值 该值不能太小 否则会产生太小的速度作为运行指令 使机器人无法前进
+
+  min_rot_vel: 1.37, # 旋转最小速度的绝对值 
+  max_rot_vel: 2.75, # 旋转最大速度的绝对值 该值不能太小 否则会产生太小的速度作为运行指令 使机器人无法转弯
+
+  # 对于最小的x方向线速度 将它设置为一个大的负值 可以使机器人在陷入困境中时可以后退 对于最小的旋转速度 将其设置为负值 以便机器人可以在任意方向旋转 
+  # 速度采样区间
+  min_vel_x: -0.22, # x方向最小线速度 单位:米/秒 如果为负值表示可以后退
+  max_vel_x: 0.22, # x方向最大线速度 单位:米/秒
+
+  min_vel_y: 0.0, # y方向最小线速度 单位:米/秒 差分驱动机器人设置为0
+  max_vel_y: 0.0, # y方向最大线速度 单位:米/秒 差分驱动机器人设置为0
+
+  vx_samples: 20, # 在x方向的速度采样区间中进行采样的采样数
+  vy_samples: 0, # 在y方向的速度采样区间中进行采样的采样数
+  vth_samples: 40, # 在旋转的速度采样区间中进行采样的采样数
+
+  # 如果将sim_time设置为一个非常低的值（<=2.0） 将导致性能受限 特别是当机器人需要通过狭窄间隙时 因为没有足够的时间来获得实际通过狭窄间隙的最佳轨迹
+  # 如果将sim_time设置为一个非常高的值（>=5.0）将导致不太灵活的长曲线 
+  # 一种策略是在设置高sim_time的同时 提高控制器的控制频率controller_frequency 因为局部规划器在每个时间间隔（由控制器的控制频率（hz）控制）后都会主动重新规划 这能及时调整生成的长轨迹 兼容最优轨迹与灵活性
+
+  sim_time: 1.5, # 机器人以采样速度移动所允许的时间
+  sim_granularity: 0.1, # 根据采样到的线速度 乘以sim_time 可以得到一个采样直线距离 sim_granularity是这个采样直线距离中的最小单位距离 单位为米 也即是轨迹的直线颗粒度
+  angular_sim_granularity: 0.1, # 根据采样到的角速度 乘以sim_time 可以得到一个采样旋转角 angular_sim_granularity是这个采样旋转角中的最小单位角度 单位为弧度 也即是轨迹的角度颗粒度
+
+  forward_point_distance: 0.325, # 将当前点与global path的终点连线并延长forward_point_distance的距离作为一个附加的评分点 数值过大会导致机器人在目标点之前就停下
+  stop_time_buffer: 0.2, # 为防止碰撞 机器人必须提前停止的时间长度 数值过大会导致机器人还没到达目标点就过早停下
+
+
+  # cost计算公式：cost = path_distance_bias∗(生成轨迹和规划路径的距离)+goal_distance_bias∗(生成轨迹的终点和规划路径的终点的差距)+occdist scale∗(生成轨迹上obstacle cost的最大值(0-254))
+  # obstacle cost的计算会利用到footprint的信息 而max_scaling_factor和scaling_speed可以引起footprint的变化 
+  # DWA会根据机器人的不同速度 对footprint进行大小不同的膨胀 进而影响obstacle cost的计算
+  # 几个权重的大小是相对于彼此的值而言的
+  path_distance_bias: 30, # 生成轨迹对规划路径的依赖权重 该权重越大 生成轨迹越接近规划路径
+  goal_distance_bias: 5, # 生成轨迹能到达规划路径终点的权重 该权重越大 生成轨迹越不依赖规划路径 越不靠近目标点
+  occdist_scale: 0.02, # 机器人避开障碍物的权重 该权重越大 机器人越能避开障碍物
+  twirling_scale: 0.0, # 机器人改变航向的惩罚因子 该惩罚因子越大 机器人越不容易改变航向
+
+  xy_goal_tolerance: 0.05, # 机器人到达目标点时容许的直线距离误差 单位为米
+  yaw_goal_tolerance: 0.17, # 机器人到达目标点时容许的角度误差 单位为弧度
+  latch_xy_goal_tolerance: false, # 当置为true时 当机器人进入目标点的直线距离误差以内的范围时 机器人将只进行旋转调整 不再继续规划路径
+
+  trans_stopped_vel: 0.1, # 如果机器人的线速度低于该值 则认为机器人已停止平移运动 单位为 m/s 该数值不宜太小 否则会导致机器人一卡一卡的 一般可以设置为小于min_trans_vel
+  rot_stopped_vel: 0.1, # 如果机器人的角速度低于该值 则认为机器人已停止旋转运动 单位为 rad/s 该数值不宜太小 否则会导致机器人一卡一卡的 一般可以设置为小于min_rot_vel
+
+  # 在一些特殊场景下 局部轨迹规划器会交替生成通向两个相反方向的路径 这会导致机器人的振荡运动 可通过recovery机制来恢复正常运动
+  oscillation_reset_dist: 0.05, # 小于该距离的往返运动将被视为振荡运动 从而触发recovery机制
+  oscillation_reset_angle: 0.2, # 小于该角度的往返运动将被视为振荡运动 从而触发recovery机制
+
+  scaling_speed: 0.25, # 达到对footprint进行缩放的最小速度阈值 小于该速度则不对footprint进行缩放 footprint用于计算obstacle cost 会影响到生成轨迹的得分
+  max_scaling_factor: 0.2, # 对footprint进行缩放的最大缩放因子
+
+  controller_frequency: 10, # 发送给底盘控制移动指令的频率
+
+  prune_plan: false, # 当设为true时 当机器人移动1米后 会清除掉1米前的global path 使得path一直只保留1米的长度
+
+  publish_cost_grid_pc: true,
+  publish_traj_pc: true,
+
+  restore_defaults: false
+}
+
+local_costmap:
+  map_type: costmap
+
+  global_frame: map
+  robot_base_frame: base_footprint
+
+  transform_tolerance: 0.5
+  update_frequency: 10.0
+  publish_frequency: 10.0
+
+  footprint: '[]'
+  footprint_padding: 0.01
+  robot_radius: 0.105
+
+  width: 3
+  height: 3
+  origin_x: 0.0
+  origin_y: 0.0
+  resolution: 0.05
+
+  rolling_window: true # 是否使用滚动窗口 设为true时 只使用滚动窗口中的代价地图进行路径规划
+
+  observation_sources: scan # 障碍物层所使用的传感器数据源（命名空间） 当使用多个传感器数据源时 通过空格分隔开 如"source_name1 source_name2"
+  scan: { # 配置observation_sources列出的传感器数据源
+    clearing: true, # 传感器数据是否用于空闲区域的代价值清除
+    data_type: LaserScan, # 数据源的数据类型 只支持sensor_msgs/LaserScan sensor_msgs/PointCloud sensor_msgs/PointCloud2
+    marking: true, # 传感器数据是否用于障碍物区域的代价值标记
+    sensor_frame: base_scan, # 数据源所在的坐标系
+    topic: scan, # 数据源对应的topic名
+    raytrace_range: 2.5, # 利用传感器数据对障碍物进行光线追踪的最大距离 光线追踪用于清空从传感器到障碍物之间的路径上的网格的代价值 可以理解为实时清除代价地图上的障碍物的最大范围
+    obstacle_range: 2.0 # 利用传感器数据往代价地图中插入障碍物的最大距离 超出该距离的障碍物将不插入到代价地图中 可以理解为机器人检测障碍物的最大范围 超过该范围的障碍物就不进行检测 也不用于路径规划
+  }
+
+  # 局部代价地图不需要静态地图层
+  plugins:
+    - {name: static_layer, type: 'costmap_2d::StaticLayer'}
+    - {name: inflation_layer, type: 'costmap_2d::InflationLayer'}
+    - {name: obstacle_layer, type: 'costmap_2d::ObstacleLayer'}
+    - {name: voxel_layer, type: 'costmap_2d::VoxelLayer'}
+    - {name: virtual_layer, type: 'virtual_layer::VirtualLayer'}
+
+  static_layer: {
+    enabled: true
+  }
+
+  inflation_layer: {
+    enabled: true,
+    cost_scaling_factor: 15,
+    inflate_unknown: false,
+    inflation_radius: 1.5
+  }
+
+  obstacle_layer: {
+    enabled: true, # 局部代价地图需要动态障碍物层
+    combination_method: 2, # 用于设置障碍层使用来自其他层传入的数据的方式 可选值为Overwrite(0)直接覆盖传入的数据（即不使用传入数据） Maximum(1)取其中数值最大的数据 Nothing(99)不改变传入的数据（即直接使用传入数据）
+    footprint_clearing_enabled: true, # 是否将机器人的footprint所经过的网格的代价值清除并设置为空闲状态
+    track_unknown_space: true # 是否区分未知状态 置为true时 网格分为致命碰撞 空闲 未知三种状态 置为false时 网格只分为致命碰撞和空闲两种状态
+  }
+
+  voxel_layer: {
+    enabled: true, # 局部代价地图需要动态体素层
+    mark_threshold: 0, # 当地图平面上的一个网格被认为是空闲状态时 该网格在z方向上的一列体素中所允许包含的最大的状态为已标记的体素数
+    unknown_threshold: 5, # 当地图平面上的一个网格被认为是已知状态时 该网格在z方向上的一列体素中所允许包含的最大的状态为未知的体素数
+    max_obstacle_height: 1.0, # 代价地图中插入的障碍物的最大高度 单位为米 一般设置为稍高于机器人的高度
+    origin_z: 0.0, # 体素层的原点对应的z值 单位为米
+    z_resolution: 0.1, # 体素层在z轴的分辨率 分辨率越高 障碍物的形状细节越多
+    z_voxels: 10, # 体素层在z轴上的一列体素的体素数 体素数乘以分辨率就是体素层的高度
+    publish_voxel_map: true # 发布体素层的topic
+  }
+
+  virtual_layer:
+    enabled: true
+    map_frame: map
+    base_frame: base_footprint
+    zone_topics: [/viable_zone]
+    obstacle_topics: [/virtual_obstacle]
+    one_zone: true
+    clear_obstacles: true
+
+
+# 默认的recovery机制：首先清除指定区域外的障碍物 然后尽可能地尝试原地旋转一周 如果失败 则更激进地 将位于机器人footprint的外切圆区域之外的障碍物全部清除 然后再次尝试原地旋转一周 如果依然失败 则中止recovery机制
+
+recovery_behaviors: # 当全局或局部路径规划失败 或者机器人发生振荡时 默认将按照conservative_reset rotate_recovery aggressive_reset rotate_recovery的顺序执行recovery机制
+  - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery} # 默认只清理障碍物层 只保留边长为reset_distance 中心为机器人位置的矩形区域内的网格的状态 将其他区域的网格都设置为未知状态
+  - {name: rotate_recovery, type: rotate_recovery/RotateRecovery} # 机器人简单地原地旋转360度 检查在旋转过程中 机器人的footprint会不会碰撞到障碍物
+  - {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery} # 默认只清理障碍物层 只保留边长为reset_distance 中心为机器人位置的矩形区域内的网格的状态 将其他区域的网格都设置为未知状态
+
+recovery_behavior_enabled: true # 是否启用recovery机制
+clearing_rotation_allowed: true # 是否允许机器人在recovery机制中进行原地旋转（当recovery_behavior_enabled被启用时才需要设置）
+
+# 确定一个以机器人位置为中心 边长为该值的正方形区域 区域内的信息予以保留 区域外的障碍物将会从代价地图中被清除
+conservative_reset: {reset_distance: 0.2} # 该值一般设为大于机器人footprint的外切半径 用于程度较为保守的障碍物清除
+aggressive_reset: {reset_distance: 0.1} # 该值的默认值是机器人footprint的外切半径 用于程度较为激进的障碍物清除
+
+max_planning_retries: -1 # 执行recovery机制前路径规划的最大尝试次数 -1代表无限次尝试
+
+planner_frequency: 5.0 # 执行全局路径规划的频率 当置为0时代表只规划一次（只有当新的目标点送达或者局部路径被堵塞时才会开始新一次的规划）
+planner_patience: 5.0 # 当超过这个时间 而规划器仍未规划出可行的路径时 则启动recovery机制 单位为秒
+
+controller_frequency: 10.0 # 发送机器人运动控制指令的频率 频率太小会导致机器人一卡一卡的
+controller_patience: 15.0 # 当超过这个时间 机器人仍未收到可行的运动控制指令 则启动recovery机制 单位为秒
+
+oscillation_distance: 0.2　# 当机器人进行的往返运动距离小于该值时 则认为是振荡运动 单位为米
+oscillation_timeout: 5.0 # 当机器人的振荡运动超过该时间时 则启动recovery机制 单位为秒 当置为0时则代表允许永远振荡
+
+shutdown_costmaps: false # 当move_base处于非活动状态时 是否关闭代价地图
+restore_defaults: false
+

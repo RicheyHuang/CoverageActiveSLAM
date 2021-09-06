@@ -1,0 +1,114 @@
+<launch>
+    <!--  WORLD BUILDER  -->
+    <env name="GAZEBO_MODEL_PATH" value="$(find world_builder)/models" />
+
+    <arg name="paused" default="false"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="extra_gazebo_args" default=""/>
+    <arg name="gui" default="true"/>
+    <arg name="recording" default="false"/>
+
+    <arg name="headless" default="false"/>
+    <arg name="debug" default="false"/>
+    <arg name="physics" default="ode"/>
+    <arg name="verbose" default="false"/>
+    <arg name="output" default="screen"/>
+    <arg name="world_name" value="$(find world_builder)/worlds/house.world"/>
+    <arg name="respawn_gazebo" default="false"/>
+    <arg name="use_clock_frequency" default="false"/>
+    <arg name="pub_clock_frequency" default="100"/>
+
+    <!-- set use_sim_time flag -->
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+    <!-- set command arguments -->
+    <arg unless="$(arg paused)" name="command_arg1" value=""/>
+    <arg     if="$(arg paused)" name="command_arg1" value="-u"/>
+    <arg unless="$(arg recording)" name="command_arg2" value=""/>
+    <arg     if="$(arg recording)" name="command_arg2" value="-r"/>
+    <arg unless="$(arg verbose)" name="command_arg3" value=""/>
+    <arg     if="$(arg verbose)" name="command_arg3" value="--verbose"/>
+    <arg unless="$(arg debug)" name="script_type" value="gzserver"/>
+    <arg     if="$(arg debug)" name="script_type" value="debug"/>
+
+    <!-- start gazebo server-->
+    <group if="$(arg use_clock_frequency)">
+        <param name="gazebo/pub_clock_frequency" value="$(arg pub_clock_frequency)" />
+    </group>
+    <node name="gazebo" pkg="gazebo_ros" type="$(arg script_type)" respawn="$(arg respawn_gazebo)" output="$(arg output)"
+          args="$(arg command_arg1) $(arg command_arg2) $(arg command_arg3) -e $(arg physics) $(arg extra_gazebo_args) $(arg world_name)" />
+
+    <!-- start gazebo client -->
+    <group if="$(arg gui)">
+        <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="$(arg output)" args="$(arg command_arg3)"/>
+    </group>
+
+    <!--  ROBOT CREATOR  -->
+    <arg name="x_pos" default="0.0"/>
+    <arg name="y_pos" default="0.0"/>
+    <arg name="z_pos" default="0.0"/>
+    <param name="robot_description" command="cat $(find robot_creator)/urdf/robot.urdf" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="log">
+        <param name="publish_frequency" type="double" value="50.0" />
+    </node>
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-file $(find robot_creator)/urdf/robot.urdf -urdf -model robot -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos)" />
+
+    <node pkg="robot_creator" type="flat_world_imu_node" name="flat_world_imu_node" output="log">
+        <remap from="imu_in" to="/imu" />
+        <remap from="imu_out" to="/flat_imu" />
+    </node>
+
+    <!--  SENSOR STATES GENERATOR  -->
+    <node pkg="sensor_states_generator" type="sensor_states_generator_node" respawn="false" name="sensor_states_generator_node" output="log">
+        <rosparam file="$(find sensor_states_generator)/cfg/sensor_states_generator.yaml" />
+    </node>
+
+    <!--  CARTOGRAPHER  -->
+    <node name="cartographer_node" pkg="cartographer_ros"
+          type="cartographer_node" args="
+          -configuration_directory $(find configuration)/cfg/slam_stack
+          -configuration_basename slam.lua"
+          output="screen">
+        <remap from="/imu" to="/flat_imu"/>
+        <remap from="scan" to="/scan"/>
+    </node>
+
+    <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+          type="cartographer_occupancy_grid_node" args="-resolution 0.05" output="screen">
+        <remap from="map" to="/cartographer_map" />
+    </node>
+
+    <!--  ODOMETRY PUBLISHER  -->
+    <node pkg="odometry_publisher" type="odometry_publisher_node" name="odometry_publisher_node" respawn="false" output="log">
+        <rosparam file="$(find odometry_publisher)/cfg/odometry_publisher.yaml" />
+    </node>
+
+    <!-- MOVE BASE   -->
+    <node pkg="move_base" type="move_base" respawn="true" name="move_base" output="log">
+        <rosparam file="$(find configuration)/cfg/navigation_stack/move_base.yaml" command="load" />
+    </node>
+
+    <!--  MAP CONVERTER  -->
+    <node pkg="map_converter" type="map_converter_node" respawn="false" name="map_converter_node" output="log">
+        <rosparam file="$(find map_converter)/cfg/map_converter.yaml" />
+    </node>
+
+    <!--  COVERAGE MAPPER  -->
+    <node pkg="coverage_mapper" type="coverage_mapper_node" respawn="false" name="coverage_mapper_node" output="log">
+        <rosparam file="$(find coverage_mapper)/cfg/coverage_mapper.yaml" />
+    </node>
+
+    <!--  VIRTUAL LAYER PROCESSOR  -->
+    <node pkg="virtual_layer_processor" type="virtual_layer_processor_node" respawn="false" name="virtual_layer_processor_node" output="log">
+        <rosparam file="$(find virtual_layer_processor)/cfg/virtual_layer_processor.yaml" />
+    </node>
+
+    <!--  COVERAGE NAVIGATION  -->
+    <node pkg="coverage_navigator" type="coverage_navigator_node" respawn="false" required="true" name="coverage_navigator_node" output="log">
+        <rosparam file="$(find coverage_navigator)/cfg/coverage_navigator.yaml" />
+    </node>
+
+    <!--  VISUALIZATION  -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find configuration)/rviz/caslam.rviz"/>
+
+</launch>

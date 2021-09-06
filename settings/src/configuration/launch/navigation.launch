@@ -1,0 +1,21 @@
+<launch>
+
+    <!--  start odometry publisher  -->
+    <include file="$(find odometry_publisher)/launch/odometry_publisher.launch" />
+
+    <!--  start move base  -->
+    <include file="$(find configuration)/launch/move_base.launch" />
+
+    <!--  get standard occupancy grid map  -->
+    <include file="$(find map_converter)/launch/map_converter.launch" />
+
+    <!--  get coverage map  -->
+    <include file="$(find coverage_mapper)/launch/coverage_mapper.launch" />
+
+    <!--  process virtual layer  -->
+    <include file="$(find virtual_layer_processor)/launch/virtual_layer_processor.launch" />
+
+    <!--  start coverage navigation stack  -->
+    <include file="$(find coverage_navigator)/launch/coverage_navigator.launch" />
+
+</launch>

@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="sensor_states_generator" type="sensor_states_generator_node" respawn="false" name="sensor_states_generator_node" output="log">
+        <rosparam file="$(find sensor_states_generator)/cfg/sensor_states_generator.yaml" />
+    </node>
+</launch>

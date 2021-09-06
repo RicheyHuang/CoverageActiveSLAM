@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="odometry_publisher" type="odometry_publisher_node" name="odometry_publisher_node" respawn="false" output="log">
+        <rosparam file="$(find odometry_publisher)/cfg/odometry_publisher.yaml" />
+    </node>
+</launch>

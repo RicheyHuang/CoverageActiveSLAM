@@ -1,0 +1,7 @@
+world_min_x: -20
+world_max_x: 20
+world_min_y: -20
+world_max_y: 20
+map_resolution: 0.05
+map_topic: "/map"
+occupancy_grid_topic: "/cartographer_map"

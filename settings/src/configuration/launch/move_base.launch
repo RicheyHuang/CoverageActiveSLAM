@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="move_base" type="move_base" respawn="true" name="move_base" output="log">
+        <rosparam file="$(find configuration)/cfg/navigation_stack/move_base.yaml" command="load" />
+    </node>
+</launch>

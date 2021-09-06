@@ -1,0 +1,6 @@
+tf_listen_time: 10
+tf_lookup_time: 3
+odom_frame: "map"
+robot_base_frame: "base_footprint"
+odom_topic: "/odom"
+odom_publish_rate: 50

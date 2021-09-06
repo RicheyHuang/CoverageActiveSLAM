@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="map_converter" type="map_converter_node" respawn="false" name="map_converter_node" output="log">
+        <rosparam file="$(find map_converter)/cfg/map_converter.yaml" />
+    </node>
+</launch>

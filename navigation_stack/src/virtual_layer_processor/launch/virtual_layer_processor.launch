@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="virtual_layer_processor" type="virtual_layer_processor_node" respawn="false" name="virtual_layer_processor_node" output="log">
+        <rosparam file="$(find virtual_layer_processor)/cfg/virtual_layer_processor.yaml" />
+    </node>
+</launch>

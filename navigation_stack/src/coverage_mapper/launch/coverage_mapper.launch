@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="coverage_mapper" type="coverage_mapper_node" respawn="false" name="coverage_mapper_node" output="log">
+        <rosparam file="$(find coverage_mapper)/cfg/coverage_mapper.yaml" />
+    </node>
+</launch>

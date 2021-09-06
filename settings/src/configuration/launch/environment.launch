@@ -1,0 +1,12 @@
+<launch>
+
+    <!--  start simulated world  -->
+    <include file="$(find world_builder)/launch/world_builder.launch" />
+
+    <!--  start simulated robot  -->
+    <include file="$(find robot_creator)/launch/robot_creator.launch" />
+
+    <!--  get simulated sensor data  -->
+    <include file="$(find sensor_states_generator)/launch/sensor_states_generator.launch" />
+
+</launch>

@@ -1,0 +1,20 @@
+SENSOR_INFO: &sensor_info 0
+VIRTUAL_INFO: &virtual_info 1
+MERGED_INFO: &merged_info 2
+
+robot_size: &robot_size 0.21
+collided_range: 0.30
+obstacle_detected_range: 0.5
+along_wall_range: *robot_size
+free_space_range: 0.25
+unilateral_detect_angle: 30
+beam_size: 0
+data_source: *merged_info
+
+raw_states_topic: "/sensor_states"
+processed_states_topic: "/detection_states"
+odom_topic: "/odom"
+zone_topic: "/viable_zone"
+obstacles_topic: "/virtual_obstacle"
+make_zone_service: "/make_zone"
+make_obstacles_service: "/make_obstacles"

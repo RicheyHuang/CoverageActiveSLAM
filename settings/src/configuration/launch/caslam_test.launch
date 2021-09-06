@@ -1,0 +1,8 @@
+<launch>
+
+    <include file="$(find configuration)/launch/environment.launch" />
+    <include file="$(find configuration)/launch/slam.launch" />
+    <include file="$(find configuration)/launch/navigation.launch" />
+    <include file="$(find configuration)/launch/rviz.launch" />
+
+</launch>

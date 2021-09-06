@@ -1,0 +1,17 @@
+<launch>
+    <arg name="x_pos" default="0.0"/>
+    <arg name="y_pos" default="0.0"/>
+    <arg name="z_pos" default="0.0"/>
+    <param name="robot_description" command="cat $(find robot_creator)/urdf/robot.urdf" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="log">
+        <param name="publish_frequency" type="double" value="50.0" />
+    </node>
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-file $(find robot_creator)/urdf/robot.urdf -urdf -model robot -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos)" />
+
+    <node pkg="robot_creator" type="flat_world_imu_node" name="flat_world_imu_node" output="log">
+        <remap from="imu_in" to="/imu" />
+        <remap from="imu_out" to="/flat_imu" />
+    </node>
+
+</launch>
+

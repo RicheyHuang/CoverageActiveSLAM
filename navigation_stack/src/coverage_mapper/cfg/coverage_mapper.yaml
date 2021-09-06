@@ -1,0 +1,14 @@
+robot_radius: 0.105
+world_min_x: -20
+world_max_x: 20
+world_min_y: -20
+world_max_y: 20
+map_resolution: 0.05
+map_topic: "/map"
+occupancy_map_topic: "/occupancy_grid_map"
+odom_topic: "/odom"
+trajectory_topic: "/robot_trajectory"
+coverage_map_topic: "/coverage_map"
+coverage_image_topic: "/vis_coverage_map"
+trajectory_frame: "map"
+map_frame: "map"

@@ -1,0 +1,11 @@
+robot_radius: 0.105
+robot_size: &robot_size 0.21
+collided_range: 0.3
+obstacle_detected_range: 0.5
+along_wall_range: *robot_size
+free_space_range: 0.25
+unilateral_detect_angle: 30
+beam_size: 0
+states_topic: "/sensor_states"
+scan_topic: "/scan"
+bumper_topic: "/bumper_states"

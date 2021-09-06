@@ -1,0 +1,94 @@
+# constants
+odom_topic: &odom_topic "/odom"
+planner_frame: &path_frame "map"
+
+
+robot_radius: 0.105
+robot_size: 0.21
+wheel_span: 0.16
+world_min_x: -20
+world_max_x: 20
+world_min_y: -20
+world_max_y: 20
+map_resolution: 0.05
+
+area_radius: 40
+area_size: 80
+
+motion_topic: "/cmd_vel"
+wheel_speed_topic: "/wheel_speed"
+
+wall_following:
+  odom_topic: *odom_topic
+  states_topic: "/detection_states"
+  high_speed: 0.06
+  normal_speed: 0.04
+  low_speed: 0.02
+
+zigzag_walking:
+  high_speed: 0.08
+  normal_speed: 0.01
+  low_speed: 0.005
+  speed_increment: 0.005
+  odom_topic: *odom_topic
+  states_topic: "/detection_states"
+  coverage_map_topic: "/coverage_map"
+  occupancy_map_topic: "/occupancy_grid_map"
+  yaw_buffer: 45.0
+  yaw_tolerance: 1.0
+  position_tolerance: 0.03
+
+dynamic_navigating:
+  high_speed: 0.08
+  normal_speed: 0.01
+  low_speed: 0.005
+  speed_increment: 0.01
+  path_plan_frame: *path_frame
+  odom_topic: *odom_topic
+  states_topic: "/detection_states"
+  coverage_map_topic: "/coverage_map"
+  occupancy_map_topic: "/occupancy_grid_map"
+  make_zone_service: "/make_zone"
+  make_obstacles_service: "/make_obstacles"
+  make_plan_service: "/move_base/make_plan"
+  move_action: "/move_base"
+  yaw_buffer: 45.0
+  yaw_tolerance: 1.0
+  position_tolerance: 0.03
+  time_tolerance: 5
+
+global_traversing:
+  high_speed: 0.08
+  normal_speed: 0.01
+  low_speed: 0.005
+  path_plan_frame: *path_frame
+  odom_topic: *odom_topic
+  occupancy_map_topic: "/occupancy_grid_map"
+  make_zone_service: "/make_zone"
+  make_obstacles_service: "/make_obstacles"
+  make_plan_service: "/move_base/make_plan"
+  clear_costmap_service: "/move_base/clear_costmaps"
+  move_action: "/move_base"
+  yaw_buffer: 45.0
+  yaw_tolerance: 1.0
+  position_tolerance: 0.03
+  time_tolerance: 5
+  max_move_trials: 3
+
+stuck_escaping:
+  high_speed: 0.08
+  normal_speed: 0.01
+  low_speed: 0.005
+  yaw_buffer: 45.0
+  yaw_tolerance: 1.0
+  position_tolerance: 0.03
+  time_tolerance: 3
+  explore_time: 0.1
+  path_plan_frame: *path_frame
+  odom_topic: *odom_topic
+  global_path_topic: "/move_base/DWAPlannerROS/global_plan"
+  local_path_topic: "/move_base/DWAPlannerROS/local_plan"
+  make_plan_service: "/move_base/make_plan"
+  move_action: "/move_base"
+
+

@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="coverage_navigator" type="coverage_navigator_node" respawn="false" name="coverage_navigator_node" output="log">
+    <rosparam file="$(find coverage_navigator)/cfg/coverage_navigator.yaml" />
+  </node>
+</launch>

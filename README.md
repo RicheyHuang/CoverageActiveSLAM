@@ -1,5 +1,11 @@
 ## Coverage Active SLAM
 
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/robot.png)
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/scene1.png)
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/scene2.png)
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/house.png)
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/exploration.png)
+![](https://github.com/RicheyHuang/CoverageActiveSLAM/blob/main/image/coverage.PNG)
 
 
 ### 0. Overview

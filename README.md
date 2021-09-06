@@ -241,7 +241,7 @@ catkin_make_isolated --install --use-ninja
 
 
 
-### 5. Reference & Acknowledge
+### 5. Reference & Acknowledgements
 
 ```http
 1. ROS

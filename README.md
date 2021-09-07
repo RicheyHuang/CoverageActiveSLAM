@@ -14,7 +14,7 @@ A SLAM framework which automatically covers the area with obstacle avoidance, us
 
 This Project is used for study, not for commercial uses.
 
-Tested on Ubuntu 20.04, with ROS Melodic and Gazebo 9.
+Tested on Ubuntu 18.04, with ROS Melodic and Gazebo 9.
 
 
 
@@ -243,7 +243,7 @@ catkin_make_isolated --install --use-ninja
 
 ### 5. Reference & Acknowledgements
 
-```http
+
 1. ROS
 2. Gazebo
 3. Cartographer
@@ -253,5 +253,5 @@ https://github.com/cartographer-project/cartographer_ros
 https://github.com/GMahmoud/virtual_costmap_layer
 5. AWS Robomaker
 https://github.com/aws-robotics/aws-robomaker-small-house-world
-```
+
 
